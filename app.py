@@ -1,104 +1,100 @@
-import streamlit as st     # Used for creating the web application
-import pandas as pd        # Used for DataFrame operations
-import joblib              # Used to load saved model and scaler
+import streamlit as st
+import pandas as pd
+import joblib
 
-model = joblib.load("LR_model.pkl")
-scaler = joblib.load("scaler.pkl")
-encoded_columns = joblib.load("columns.pkl")
+model = joblib.load("house_price_model.pkl")
 
-st.set_page_config(                         # Configure the Streamlit page.
-    page_title="Ford Car Price Predictor",  # page_title sets the title displayed on the browser tab.
-    layout="centered"                       # layout="centered" keeps the application centered for a clean and user-friendly interface.
+city_encoder = joblib.load("city_encoder.pkl")
+state_encoder = joblib.load("state_encoder.pkl")
+country_encoder = joblib.load("country_encoder.pkl")
+
+st.title("House Price Prediction")
+
+st.write("Enter House Details")
+
+bedrooms = st.number_input("Bedrooms", 1, 10, 3)
+
+bathrooms = st.number_input("Bathrooms", 1.0, 10.0, 2.0)
+
+sqft_living = st.number_input("Sqft Living", 500, 15000, 2000)
+
+sqft_lot = st.number_input("Sqft Lot", 1000, 1000000, 5000)
+
+floors = st.number_input("Floors", 1.0, 5.0, 1.0)
+
+waterfront = st.selectbox("Waterfront", [0,1])
+
+view = st.selectbox("View", [0,1,2,3,4])
+
+condition = st.slider("Condition",1,5,3)
+
+sqft_above = st.number_input("Sqft Above",500,10000,1500)
+
+sqft_basement = st.number_input("Sqft Basement",0,5000,500)
+
+yr_built = st.number_input("Year Built",1900,2024,2000)
+
+yr_renovated = st.number_input("Year Renovated",0,2024,0)
+
+city = st.selectbox(
+    "City",
+    city_encoder.classes_
 )
 
-st.title("Ford Car Price Predictor")
-
-st.write("Enter the car details below to predict its selling price.")
-
-year = st.number_input(
-    "Manufacturing Year",
-    min_value=1990,
-    max_value=2025,
-    value=2018
+statezip = st.selectbox(
+    "State Zip",
+    state_encoder.classes_
 )
 
-mileage = st.number_input(
-    "Mileage",
-    min_value=0,
-    value=20000
+country = st.selectbox(
+    "Country",
+    country_encoder.classes_
 )
 
-tax = st.number_input(
-    "Road Tax",
-    min_value=0,
-    value=150
-)
+if st.button("Predict Price"):
 
-mpg = st.number_input(
-    "MPG",
-    min_value=0.0,
-    value=50.0
-)
+    city = city_encoder.transform([city])[0]
+    statezip = state_encoder.transform([statezip])[0]
+    country = country_encoder.transform([country])[0]
 
-engineSize = st.number_input(
-    "Engine Size",
-    min_value=0.0,
-    value=1.5
-)
+    data = pd.DataFrame([[
 
-# selectbox is used because it allows the user to select only one valid option.
-transmission = st.selectbox(
-    "Transmission",
-    ["Manual", "Automatic", "Semi-Auto"]
-)
+        bedrooms,
+        bathrooms,
+        sqft_living,
+        sqft_lot,
+        floors,
+        waterfront,
+        view,
+        condition,
+        sqft_above,
+        sqft_basement,
+        yr_built,
+        yr_renovated,
+        city,
+        statezip,
+        country
 
-fuelType = st.selectbox(
-    "Fuel Type",
-    ["Petrol", "Diesel", "Hybrid", "Electric", "Other"]
-)
+    ]], columns=[
 
-model_name = st.text_input("Car Model")
+        'bedrooms',
+        'bathrooms',
+        'sqft_living',
+        'sqft_lot',
+        'floors',
+        'waterfront',
+        'view',
+        'condition',
+        'sqft_above',
+        'sqft_basement',
+        'yr_built',
+        'yr_renovated',
+        'city',
+        'statezip',
+        'country'
 
-predict = st.button("Predict Price")
+    ])
 
+    prediction = model.predict(data)
 
-if predict:
-
-    input_data = {
-        "year": year,
-        "mileage": mileage,
-        "tax": tax,
-        "mpg": mpg,
-        "engineSize": engineSize,
-        "model": model_name,
-        "transmission": transmission,
-        "fuelType": fuelType
-    }
-
-    input_df = pd.DataFrame([input_data])
-
-    input_df = pd.get_dummies(input_df)
-
-    for col in encoded_columns:
-        if col not in input_df.columns:
-            input_df[col] = 0
-
-    input_df = input_df[encoded_columns]
-
-
-    numerical_columns = [
-        "year",
-        "mileage",
-        "tax",
-        "mpg",
-        "engineSize"
-    ]
-
-    input_df[numerical_columns] = scaler.transform(
-        input_df[numerical_columns]
-    )
-
-
-    prediction = model.predict(input_df)
-
-    st.success(f"Estimated Car Price: £ {prediction[0]:,.2f}")
+    st.success(f"Predicted House Price: ${prediction[0]:,.2f}")
