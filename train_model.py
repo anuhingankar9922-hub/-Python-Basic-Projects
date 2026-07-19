@@ -1,43 +1,37 @@
 import pandas as pd
 import joblib
 
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import LabelEncoder
 
-df = pd.read_csv("ford_car_dataset.csv")
+df = pd.read_csv("data.csv")
+
+df = df.drop(["date", "street"], axis=1)
+
+le_city = LabelEncoder()
+le_state = LabelEncoder()
+le_country = LabelEncoder()
+
+df["city"] = le_city.fit_transform(df["city"])
+df["statezip"] = le_state.fit_transform(df["statezip"])
+df["country"] = le_country.fit_transform(df["country"])
 
 X = df.drop("price", axis=1)
 y = df["price"]
 
-X = pd.get_dummies(X)
-
-encoded_columns = X.columns
-
-numerical_columns = [
-    "year",
-    "mileage",
-    "tax",
-    "mpg",
-    "engineSize"
-]
-
-scaler = StandardScaler()
-
-X[numerical_columns] = scaler.fit_transform(X[numerical_columns])
-
 X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y,
-    test_size=0.2,
-    random_state=42
+    X, y, test_size=0.2, random_state=42
 )
 
-model = LinearRegression()
+model = RandomForestRegressor()
+
 model.fit(X_train, y_train)
 
-joblib.dump(model, "LR_model.pkl")
-joblib.dump(scaler, "scaler.pkl")
-joblib.dump(encoded_columns, "columns.pkl")
+joblib.dump(model, "house_price_model.pkl")
+
+joblib.dump(le_city, "city_encoder.pkl")
+joblib.dump(le_state, "state_encoder.pkl")
+joblib.dump(le_country, "country_encoder.pkl")
 
 print("Model Saved Successfully!")
